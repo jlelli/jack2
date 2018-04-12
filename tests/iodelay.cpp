@@ -207,6 +207,16 @@ int jack_callback (jack_nframes_t nframes, void *arg)
     return 0;
 }
 
+static unsigned int xrun_count;
+
+int jack_xrun_callback (void *arg)
+{
+    printf("\tWARN: xrun detected!\n");
+    xrun_count++;
+
+    return 0;
+}
+
 int main (int ac, char *av [])
 {
     float          t;
@@ -225,6 +235,8 @@ int main (int ac, char *av [])
 
     if (jack_set_latency_callback)
 	    jack_set_latency_callback (jack_handle, latency_cb, 0);
+
+    jack_set_xrun_callback (jack_handle, jack_xrun_callback, 0);
 
     jack_capt = jack_port_register (jack_handle, "in",  JACK_DEFAULT_AUDIO_TYPE, JackPortIsInput, 0);
     jack_play = jack_port_register (jack_handle, "out", JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0);
@@ -257,8 +269,8 @@ int main (int ac, char *av [])
             }
             systemic_latency = (jack_nframes_t) floor (mtdm->_del - (capture_latency.max + playback_latency.max));
 
-            printf ("%10.3lf frames %10.3lf ms total roundtrip latency\n\textra loopback latency: %u frames\n\tuse %u for the backend arguments -I and -O", mtdm->_del, mtdm->_del * t, 
-                    systemic_latency, systemic_latency/2);
+            printf ("%10.3lf frames %10.3lf ms total roundtrip latency\n\textra loopback latency: %u frames\n\tuse %u for the backend arguments -I and -O\n\t%u xruns detected", mtdm->_del, mtdm->_del * t,
+                    systemic_latency, systemic_latency/2, xrun_count);
             if (mtdm->_err > 0.2) printf (" ??");
                 if (mtdm->_inv) printf (" Inv");
             printf ("\n");
